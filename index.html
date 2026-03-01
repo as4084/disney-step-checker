@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Disney STEP チェッカー Pro</title>
+    <title>Disney STEP トレジャーチェッカー</title>
     <style>
         :root { --primary: #1a73e8; --bg: #f8f9fa; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 15px; color: #333; }
         .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         h1 { font-size: 1.1rem; text-align: center; margin-bottom: 20px; color: var(--primary); }
         
-        .tab-menu { display: flex; gap: 8px; margin-bottom: 20px; background: #eee; padding: 4px; border-radius: 10px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; cursor: pointer; border-radius: 8px; font-weight: bold; transition: 0.2s; }
+        .tab-menu { display: flex; gap: 5px; margin-bottom: 20px; background: #eee; padding: 4px; border-radius: 10px; }
+        .tab-btn { flex: 1; padding: 10px 5px; border: none; background: transparent; cursor: pointer; border-radius: 8px; font-weight: bold; transition: 0.2s; font-size: 0.8rem; }
         .tab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
         .progress-box { text-align: center; margin-bottom: 15px; background: #e8f0fe; padding: 10px; border-radius: 12px; font-weight: bold; }
@@ -38,6 +38,7 @@
         .item { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #f9f9f9; cursor: pointer; }
         .item input { margin-right: 12px; width: 20px; height: 20px; flex-shrink: 0; }
         .item label { cursor: pointer; flex-grow: 1; font-size: 0.95rem; }
+        .star-tag { font-size: 0.7rem; padding: 1px 4px; border-radius: 4px; margin-left: 5px; vertical-align: middle; background: #eee; color: #666; }
         
         .clear-btn { width: 100%; background: #fff; color: #ea4335; border: 1px solid #ea4335; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 20px; }
     </style>
@@ -45,17 +46,33 @@
 <body>
 
 <div class="container">
-    <h1>Disney STEP トレジャー管理</h1>
+    <h1>Disney STEP トレジャーチェッカー</h1>
     <div class="progress-box">収集率: <span id="percent">0</span>%</div>
     
     <div class="tab-menu">
-        <button class="tab-btn active" id="btn-star2" onclick="showTab('star2')">★2 Normal</button>
+        <button class="tab-btn active" id="btn-all" onclick="showTab('all')">All</button>
+        <button class="tab-btn" id="btn-star2" onclick="showTab('star2')">★2 Normal</button>
         <button class="tab-btn" id="btn-star3" onclick="showTab('star3')">★3 Normal</button>
     </div>
 
     <div id="list-container"></div>
 
     <button class="clear-btn" onclick="clearAll()">チェックを全リセット</button>
+
+ <div style="margin-top: 40px; padding: 20px; font-size: 0.8rem; color: #666; border-top: 1px dashed #ccc; line-height: 1.6;">
+    <p><strong>【本ツールについて】</strong><br>
+    このツールは、スマホゲーム「Disney STEP」のトレジャー収集状況を個人のブラウザ内で管理するための非公式ファンツールです。<br>
+    ラッキートレジャーではなかったものをチェックするために、個人がgeminiを用いて作成しました。</p>
+    
+    <p><strong>【注意事項】</strong><br>
+    ・チェックデータはご利用のブラウザ（Cookie/Local Storage）に保存されます。ブラウザのキャッシュを削除するとデータも消去されますのでご注意ください。<br>
+    ・本ツールは情報の正確性を保証するものではありません。最新のゲーム仕様と異なる場合があります。</p>
+
+    <p><strong>【免責事項】</strong><br>
+    ・本ツールは個人が作成したものであり、ウォルト・ディズニー・ジャパン株式会社、株式会社ドリコムとは一切関係ありません。<br>
+    ・本ツールの利用により生じた損害について、製作者は一切の責任を負いません。<br>
+    ・著作権者より申し立てがあった場合、予告なく公開を停止することがあります。</p>
+</div>
 </div>
 
 <script>
@@ -110,8 +127,7 @@ const data = {
     }
 };
 
-let currentTab = 'star2';
-// 開いているカテゴリを保持するためのセット
+let currentTab = 'all';
 let openCategories = new Set();
 
 function showTab(tab) {
@@ -124,22 +140,33 @@ function showTab(tab) {
 function render() {
     const container = document.getElementById('list-container');
     container.innerHTML = '';
-    const categories = data[currentTab];
+    
+    // 表示用データの構築
+    let displayCategories = {};
+    if (currentTab === 'all') {
+        // すべてのカテゴリを統合
+        const allKeys = new Set([...Object.keys(data.star2), ...Object.keys(data.star3)]);
+        allKeys.forEach(cat => {
+            displayCategories[cat] = [];
+            if (data.star2[cat]) data.star2[cat].forEach(name => displayCategories[cat].push({name, star: 'star2'}));
+            if (data.star3[cat]) data.star3[cat].forEach(name => displayCategories[cat].push({name, star: 'star3'}));
+        });
+    } else {
+        Object.keys(data[currentTab]).forEach(cat => {
+            displayCategories[cat] = data[currentTab][cat].map(name => ({name, star: currentTab}));
+        });
+    }
 
-    for (const catName in categories) {
+    for (const catName in displayCategories) {
         const group = document.createElement('div');
         const isOpen = openCategories.has(catName);
         group.className = `category-group ${isOpen ? 'open' : ''}`;
         
-        const items = categories[catName];
+        const items = displayCategories[catName];
         let checkedCount = 0;
         
-        // 各アイテムのチェック状態を確認
-        items.forEach(name => {
-            const id = `${currentTab}-${name}`;
-            if (localStorage.getItem(id) === 'true') {
-                checkedCount++;
-            }
+        items.forEach(item => {
+            if (localStorage.getItem(`${item.star}-${item.name}`) === 'true') checkedCount++;
         });
 
         const remains = items.length - checkedCount;
@@ -152,13 +179,15 @@ function render() {
                 <div class="badge-container"><span class="${badgeClass}">${badgeText}</span></div>
             </div>
             <div class="category-content">
-                ${items.map(name => {
-                    const id = `${currentTab}-${name}`;
+                ${items.map(item => {
+                    const id = `${item.star}-${item.name}`;
                     const isChecked = localStorage.getItem(id) === 'true';
                     return `
                         <div class="item" onclick="toggleItem('${id}', event)">
                             <input type="checkbox" id="${id}" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleItem('${id}', event)">
-                            <label for="${id}" onclick="event.stopPropagation()">${name}</label>
+                            <label for="${id}" onclick="event.stopPropagation()">
+                                ${item.name} ${currentTab === 'all' ? `<span class="star-tag">${item.star === 'star2' ? '★2' : '★3'}</span>` : ''}
+                            </label>
                         </div>
                     `;
                 }).join('')}
@@ -170,22 +199,16 @@ function render() {
 }
 
 function toggleCategory(catName, el) {
-    if (openCategories.has(catName)) {
-        openCategories.delete(catName);
-    } else {
-        openCategories.add(catName);
-    }
+    if (openCategories.has(catName)) openCategories.delete(catName);
+    else openCategories.add(catName);
     el.parentElement.classList.toggle('open');
 }
 
 function toggleItem(id, event) {
     const cb = document.getElementById(id);
-    // クリックイベントがinput自体から来た場合は、既にcheckedが反転しているのでそのまま使う
-    if (event.target.tagName !== 'INPUT') {
-        cb.checked = !cb.checked;
-    }
+    if (event.target.tagName !== 'INPUT') cb.checked = !cb.checked;
     localStorage.setItem(id, cb.checked);
-    render(); // 再描画してバッジを更新
+    render();
 }
 
 function clearAll() {
@@ -197,41 +220,19 @@ function clearAll() {
 }
 
 function updateProgress() {
-    let totalItems = 0;
-    let checkedCount = 0;
-
-    for (const tab in data) {
-        for (const cat in data[tab]) {
-            data[tab][cat].forEach(name => {
-                totalItems++;
-                if (localStorage.getItem(`${tab}-${name}`) === 'true') {
-                    checkedCount++;
-                }
+    let total = 0, checked = 0;
+    for (const s in data) {
+        for (const c in data[s]) {
+            data[s][c].forEach(n => {
+                total++;
+                if (localStorage.getItem(`${s}-${n}`) === 'true') checked++;
             });
         }
     }
-    const percent = Math.round((checkedCount / totalItems) * 100) || 0;
-    document.getElementById('percent').innerText = percent;
+    document.getElementById('percent').innerText = Math.round((checked / total) * 100) || 0;
 }
 
 render();
 </script>
-<div style="margin-top: 40px; padding: 20px; font-size: 0.8rem; color: #666; border-top: 1px dashed #ccc; line-height: 1.6;">
-    <p><strong>【本ツールについて】</strong><br>
-    このツールは、スマホゲーム「Disney STEP」のトレジャー収集状況を個人のブラウザ内で管理するための非公式ファンツールです。<br>
-    ラッキートレジャーではなかったものをチェックするために、個人がgeminiを用いて作成しました。</p>
-    
-    <p><strong>【注意事項】</strong><br>
-    ・チェックデータはご利用のブラウザ（Cookie/Local Storage）に保存されます。ブラウザのキャッシュを削除するとデータも消去されますのでご注意ください。<br>
-    ・本ツールは情報の正確性を保証するものではありません。最新のゲーム仕様と異なる場合があります。</p>
-
-    <p><strong>【免責事項】</strong><br>
-    ・本ツールは個人が作成したものであり、ウォルト・ディズニー・ジャパン株式会社、株式会社ドリコムとは一切関係ありません。<br>
-    ・本ツールの利用により生じた損害について、製作者は一切の責任を負いません。<br>
-    ・著作権者より申し立てがあった場合、予告なく公開を停止することがあります。</p>
-</div>
 </body>
 </html>
-
-
-
